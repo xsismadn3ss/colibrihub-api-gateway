@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: gateway
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: facturas-service
+              uri: ${FACTURAS_MODULE_URL}
+              predicates:
+                - Path=/api/get/**
+            - id: authentication-service
+              uri: ${USERS_MODULE_URL}
+              predicates:
+                - Path=/api/auth/**
+            - id: forgot-service
+              uri: ${USERS_MODULE_URL}
+              predicates:
+                - Path=/api/forgot/**
+            - id: verification-service
+              uri: ${USERS_MODULE_URL}
+              predicates:
+                - Path=/api/verification/**
+
+server:
+  port: ${PORT:8080}
+
