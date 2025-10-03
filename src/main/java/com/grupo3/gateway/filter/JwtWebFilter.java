@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -54,8 +55,8 @@ public class JwtWebFilter implements WebFilter {
         }
 
         // Permitir preflight CORS sin autenticación
-        if (exchange.getRequest().getMethod() != null &&
-                org.springframework.http.HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
+        HttpMethod method = exchange.getRequest().getMethod();
+        if (org.springframework.http.HttpMethod.OPTIONS.equals(method)) {
             return chain.filter(exchange);
         }
 
