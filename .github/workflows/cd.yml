@@ -1,0 +1,81 @@
+name: Deploy Spring Boot API (Docker)
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_TAG: latest
+  CONTAINER_NAME: spring-api-gateway
+  PORT: ${{ secrets.PORT }}
+  CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  FACTURAS_MODULES_URL: ${{ secrets.FACTURAS_MODULE_URL }}
+  USERS_MODULE_URL: ${{ secrets.USERS_MODULE_URL }}
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar en VPS vía Docker
+        uses: appleboy/ssh-action@v0.1.7
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          PORT: ${{ env.PORT }}
+          CORS_ALLOWED_ORIGINS: ${{ env.CORS_ALLOWED_ORIGINS }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          USERS_MODULE_URL: ${{ env.USERS_MODULE_URL }}
+          FACTURAS_MODULES_URL: ${{ env.FACTURAS_MODULES_URL }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: REGISTRY,IMAGE_NAME,IMAGE_TAG,CONTAINER_NAME,PORT,CORS_ALLOWED_ORIGINS,JWT_SECRET,USERS_MODULE_URL,FACTURAS_MODULES_URL,REGISTRY_USERNAME,REGISTRY_TOKEN
+          script: |
+            set -euo pipefail
+
+            IMAGE="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+            echo "Iniciando sesión en el registro ${REGISTRY}..."
+            echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY}" -u "${REGISTRY_USERNAME}" --password-stdin
+
+            echo "Creando/actualizando archivo .env para el contenedor..."
+            sudo mkdir -p /opt/spring-api-gateway
+            cat <<EOF | sudo tee /opt/spring-api-gateway/.env >/dev/null
+            CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+            PORT=${PORT}
+            JWT_SECRET=${JWT_SECRET}
+            USERS_MODULE_URL=${USERS_MODULE_URL}
+            FACTURAS_MODULES_URL=${FACTURAS_MODULES_URL}
+            EOF
+            sudo chmod 600 /opt/spring-api-gateway/.env
+
+            echo "Descargando última imagen: ${IMAGE}"
+            docker pull "${IMAGE}"
+
+            echo "Deteniendo y eliminando contenedor anterior si existe..."
+            if [ "$(docker ps -aq -f name=^${CONTAINER_NAME}$)" ]; then
+              docker stop "${CONTAINER_NAME}" || true
+              docker rm "${CONTAINER_NAME}" || true
+            fi
+
+            echo "Creando nuevo contenedor..."
+            docker run -d \
+              --name "${CONTAINER_NAME}" \
+              --restart unless-stopped \
+              --env-file /opt/spring-api-gateway/.env \
+              -p "${PORT}:${PORT}" \
+              "${IMAGE}"
+
+            echo "Limpiando imágenes antiguas no utilizadas..."
+            docker image prune -af || true
+
+            echo "Despliegue completado."
