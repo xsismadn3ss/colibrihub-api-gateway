@@ -14,10 +14,19 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   JAVA_VERSION: "21"
+  # Despliegue
+  CONTAINER_NAME: spring-api-gateway
+  PORT: ${{ secrets.PORT }}
+  CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  USERS_MODULE_URL: ${{ secrets.USERS_MODULE_URL }}
+  FACTURAS_MODULES_URL: ${{ secrets.FACTURAS_MODULES_URL }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
 
     steps:
       - name: Checkout
