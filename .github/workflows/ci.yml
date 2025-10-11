@@ -1,4 +1,4 @@
-name: Build and Push Docker Image (Gradle)
+name: Build and Push Image (Spring Boot Buildpacks)
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  JAVA_VERSION: ${{ secrets.JAVA_VERSION }}
+  JAVA_VERSION: "21"
 
 jobs:
   build-and-push:
@@ -28,7 +28,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
+          cache: gradle
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -36,41 +36,42 @@ jobs:
       - name: Run tests
         run: ./gradlew test --no-daemon
 
-      - name: Build Boot JAR
-        run: ./gradlew clean bootJar --no-daemon
-
-      - name: Rename artifact to a stable name
+      - name: Compute image tag
+        id: tag
+        shell: bash
         run: |
-          mkdir -p build/libs/final
-          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-          cp "$JAR_FILE" build/libs/final/app.jar
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF_NAME}" =~ ^(main|master)$ ]]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+      # PRs: construye localmente sin publicar
+      - name: Build image (no publish on PR)
+        if: github.event_name == 'pull_request'
+        env:
+          BP_JVM_VERSION: "21"
+        run: |
+          ./gradlew --no-daemon \
+            -PimageName=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }} \
+            bootBuildImage
 
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      # Pushes/tags: construye y publica a GHCR
+      - name: Build and publish image
+        if: github.event_name != 'pull_request'
+        env:
+          BP_JVM_VERSION: "21"
+        run: |
+          ./gradlew --no-daemon \
+            -PimageName=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }} \
+            bootBuildImage --publishImage

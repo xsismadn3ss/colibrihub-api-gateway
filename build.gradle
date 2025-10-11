@@ -52,3 +52,12 @@ dependencyManagement {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+tasks.named("bootBuildImage") {
+    def repo = System.getenv("GITHUB_REPOSITORY")
+    imageName = (project.findProperty("imageName") ?: "ghcr.io/${repo}:${project.version}") as String
+
+    environment = [
+        "BP_JVM_VERSION": "21"
+    ]
+}
