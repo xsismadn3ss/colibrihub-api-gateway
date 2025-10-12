@@ -57,7 +57,7 @@ jobs:
               -e FORGOT_MODULE_URL="${FORGOT_MODULE_URL}" \
               -e VERIFICATION_MODULE_URL="${VERIFICATION_MODULE_URL}" \
               -e FACTURAS_MODULES_URL="${FACTURAS_MODULES_URL}" \
-              -e PUBLIC_PATTERNS="${PUBLIC_PATTERNS}"
+              -e PUBLIC_PATTERNS="${PUBLIC_PATTERNS}" \
               --restart unless-stopped \
               "${IMAGE}"
             
