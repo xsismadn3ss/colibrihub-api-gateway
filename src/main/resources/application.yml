@@ -12,17 +12,17 @@ spring:
               - Path=/get/**
 
             - id: authentication-service
-              uri: ${USERS_MODULE_URL:http://localhost:8082}
+              uri: ${AUTH_MODULE_URL:http://localhost:8082}
               predicates:
               - Path=/auth/**
 
             - id: forgot-service
-              uri: ${USERS_MODULE_URL:http://localhost:8082}
+              uri: ${FORGOT_MODULE_URL:http://localhost:8082}
               predicates:
               - Path=/forgot/**
 
             - id: verification-service
-              uri: ${USERS_MODULE_URL:http://localhost:8082}
+              uri: ${VERIFICATION_MODULE_URL:http://localhost:8082}
               predicates:
               - Path=/verification/**
 
