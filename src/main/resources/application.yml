@@ -9,30 +9,22 @@ spring:
             - id: authentication-service
               uri: ${AUTH_MODULE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/auth/**
-              filters:
-                - StripPrefix=1
+                - Path=/auth/**
 
             - id: facturas-service
               uri: ${FACTURAS_MODULE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/get/**
-              filters:
-                - StripPrefix=1
+                - Path=/get/**
 
             - id: forgot-service
               uri: ${FORGOT_MODULE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/forgot/**
-              filters:
-                - StripPrefix=1
+                - Path=/forgot/**
 
             - id: verification-service
               uri: ${VERIFICATION_MODULE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/verification/**
-              filters:
-                - StripPrefix=1
+                - Path=/verification/**
 
 server:
   port: ${PORT:8080}
@@ -40,6 +32,6 @@ server:
 app:
   jwt:
     secret: ${JWT_SECRET:test1234567890secretKey1234567890jwtKey1234567890test1234567890}
-  public-patterns: ${PUBLIC_PATTERNS:/api/auth/**}
+  public-patterns: ${PUBLIC_PATTERNS:/auth/**}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:none}
