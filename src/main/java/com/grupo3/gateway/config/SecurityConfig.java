@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -15,14 +16,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Slf4j
 @Configuration
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtWebFilter jwtWebFilter;
 
     @Value("${app.public-patterns}")
@@ -32,43 +34,52 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource(){
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        String[] origins = allowedOrigins.split(",");
+        // Configura orígenes permitidos
+        if (!"none".equalsIgnoreCase(allowedOrigins)) {
+            Arrays.stream(allowedOrigins.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .forEach(config::addAllowedOrigin);
+        }
 
-        config.setAllowedOrigins(List.of(origins));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"));
         config.setAllowCredentials(true);
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setMaxAge(3600L);
+        config.addAllowedHeader(CorsConfiguration.ALL);
+        config.addAllowedMethod(CorsConfiguration.ALL);
+        config.addExposedHeader("Authorization");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return source;
     }
 
-    @Bean
-    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http){
-        String[] publicRoutes = Stream.of(publicPatterns.split(","))
+    private String[] resolvePublicPatterns() {
+        return Arrays.stream(publicPatterns.split(","))
                 .map(String::trim)
-                .map(s -> s.replaceAll("^\"|\"$", "").replaceAll("^'|'$", ""))
-                .filter(s -> !s.isEmpty())
+                .filter(s -> !s.isBlank())
                 .toArray(String[]::new);
-        log.info("Public routes: {}", (Object) publicRoutes);
+    }
+
+    @Bean
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        String[] publicPaths = resolvePublicPatterns();
+        log.info("Rutas públicas configuradas: {}", Arrays.toString(publicPaths));
 
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(publicRoutes).permitAll()
+                        // Muy importante para evitar 401 en preflight
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Permitir rutas públicas desde configuración
+                        .pathMatchers(publicPaths).permitAll()
+                        // Todo lo demás requiere JWT válido
                         .anyExchange().authenticated()
                 )
+                // Inserta tu filtro JWT en la cadena de seguridad
                 .addFilterAt(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
     }
