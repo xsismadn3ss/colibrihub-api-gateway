@@ -62,7 +62,7 @@ jobs:
             echo "Levantando contenedor..."
             docker run -d --name "${CONTAINER_NAME}" \
               -p "${PORT}:${PORT}" \
-              -e SERVER_PORT="${PORT}" \
+              -e PORT="${PORT}" \
               -e CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS}" \
               -e JWT_SECRET="${JWT_SECRET}" \
               -e USERS_MODULE_URL="${USERS_MODULE_URL}" \
