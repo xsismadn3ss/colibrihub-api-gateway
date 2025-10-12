@@ -3,34 +3,36 @@ spring:
     name: gateway
   cloud:
     gateway:
-      routes:
-        - id: authentication-service
-          uri: ${AUTH_MODULE_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=1
+      server:
+        webflux:
+          routes:
+            - id: authentication-service
+              uri: ${AUTH_MODULE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=1
 
-        - id: facturas-service
-          uri: ${FACTURAS_MODULE_URL:http://localhost:8081}
-          predicates:
-            - Path=/api/get/**
-          filters:
-            - StripPrefix=1
+            - id: facturas-service
+              uri: ${FACTURAS_MODULE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/get/**
+              filters:
+                - StripPrefix=1
 
-        - id: forgot-service
-          uri: ${FORGOT_MODULE_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/forgot/**
-          filters:
-            - StripPrefix=1
+            - id: forgot-service
+              uri: ${FORGOT_MODULE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/forgot/**
+              filters:
+                - StripPrefix=1
 
-        - id: verification-service
-          uri: ${VERIFICATION_MODULE_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/verification/**
-          filters:
-            - StripPrefix=1
+            - id: verification-service
+              uri: ${VERIFICATION_MODULE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/verification/**
+              filters:
+                - StripPrefix=1
 
 server:
   port: ${PORT:8080}
