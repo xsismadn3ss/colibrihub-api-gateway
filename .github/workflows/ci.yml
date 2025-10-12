@@ -12,7 +12,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: colibrihub-auth-service
   JAVA_VERSION: "21"
   # Despliegue
   CONTAINER_NAME: spring-api-gateway
