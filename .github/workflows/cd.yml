@@ -33,7 +33,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           envs: REGISTRY,IMAGE_NAME,IMAGE_TAG,CONTAINER_NAME,APP_PORT,CORS_ALLOWED_ORIGINS,JWT_SECRET,USERS_MODULE_URL,FACTURAS_MODULE_URL,REGISTRY_USERNAME,REGISTRY_TOKEN
           script: |
-            IMAGE="${REGISTRY}/${REGISTRY_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+            IMAGE="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
             
             echo "Iniciando sesión en el registro ${REGISTRY}..."
             echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY}" -u "${REGISTRY_USERNAME}" --password-stdin
